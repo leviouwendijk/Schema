@@ -27,7 +27,7 @@ public struct JSONSchemaMacro: ExtensionMacro {
 
         let source = """
         extension \(type.trimmedDescription): JSONSchemaProviding {
-            \(access(declaration))static var jsonSchema: JSONSchema {
+            \(access(declaration))static var jsonschema: JSONSchema {
         \(indent(schema, by: 8))
             }
         }
@@ -146,7 +146,7 @@ private extension JSONSchemaMacro {
             """
             JSONSchema.Property(
                 name: \(literal($0.name)),
-                schema: \($0.type).jsonSchema,
+                schema: \($0.type).jsonschema,
                 required: \($0.required),
                 description: \(optionalString($0.description))
             )

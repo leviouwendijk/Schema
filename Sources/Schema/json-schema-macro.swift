@@ -1,7 +1,7 @@
 @attached(
     extension,
     conformances: JSONSchemaProviding,
-    names: named(jsonSchema)
+    names: named(jsonschema)
 )
 public macro JSONSchema() =
     #externalMacro(

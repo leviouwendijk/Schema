@@ -23,7 +23,7 @@ internal struct JSONSchemaMacroProbe:
     let tags: [String]
 }
 
-private let jsonSchemaMacroProbeValue: JSONValue =
+private let jsonschemaMacroProbeValue: JSONValue =
     JSONSchemaMacroProbe
-        .jsonSchema
+        .jsonschema
         .jsonvalue
