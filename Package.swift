@@ -1,26 +1,60 @@
 // swift-tools-version: 6.3
-// The swift-tools-version declares the minimum version of Swift required to build this package.
 
+import CompilerPluginSupport
 import PackageDescription
 
 let package = Package(
     name: "Schema",
+    platforms: [
+        .macOS(.v13)
+    ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "Schema",
             targets: ["Schema"]
         ),
     ],
-    targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
-        .target(
-            name: "Schema"
+    dependencies: [
+        .package(
+            url: "https://github.com/leviouwendijk/Primitives.git",
+            branch: "master"
         ),
-        .testTarget(
-            name: "SchemaTests",
-            dependencies: ["Schema"]
+        .package(
+            url: "https://github.com/swiftlang/swift-syntax.git",
+            from: "603.0.0"
+        ),
+    ],
+    targets: [
+        .macro(
+            name: "SchemaMacros",
+            dependencies: [
+                .product(
+                    name: "SwiftSyntax",
+                    package: "swift-syntax"
+                ),
+                .product(
+                    name: "SwiftSyntaxBuilder",
+                    package: "swift-syntax"
+                ),
+                .product(
+                    name: "SwiftSyntaxMacros",
+                    package: "swift-syntax"
+                ),
+                .product(
+                    name: "SwiftCompilerPlugin",
+                    package: "swift-syntax"
+                ),
+            ]
+        ),
+        .target(
+            name: "Schema",
+            dependencies: [
+                .product(
+                    name: "Primitives",
+                    package: "Primitives"
+                ),
+                "SchemaMacros",
+            ]
         ),
     ],
     swiftLanguageModes: [.v6]
