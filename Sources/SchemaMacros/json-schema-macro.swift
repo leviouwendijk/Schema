@@ -53,6 +53,10 @@ private extension JSONSchemaMacro {
         let description: String?
     }
 
+    struct SchemaMetadata {
+        let required: Bool?
+    }
+
     static func structSchema(
         _ declaration: StructDeclSyntax
     ) throws -> String {
@@ -76,11 +80,9 @@ private extension JSONSchemaMacro {
                 continue
             }
 
-            guard variable.attributes.isEmpty else {
-                throw MacroExpansionErrorMessage(
-                    "Attributed or wrapped stored properties require manual JSONSchemaProviding conformance."
-                )
-            }
+            let schemaMetadata = try schemaMetadata(
+                variable.attributes
+            )
 
             guard variable.bindings.count == 1,
                   let binding = variable.bindings.first
@@ -129,8 +131,10 @@ private extension JSONSchemaMacro {
             fields.append(
                 .init(
                     name: name,
-                    type: schemaType(type),
-                    required: !isOptional(type),
+                    type: schemaPropertyType(type),
+                    required:
+                        schemaMetadata.required
+                            ?? !isOptional(type),
                     description: docs(variable.leadingTrivia)
                 )
             )
@@ -286,6 +290,36 @@ private extension JSONSchemaMacro {
         return result
     }
 
+    static func schemaMetadata(
+        _ attributes: AttributeListSyntax
+    ) throws -> SchemaMetadata {
+        let source = attributes
+            .trimmedDescription
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+            .replacingOccurrences(of: "\r", with: "")
+            .replacingOccurrences(of: "\t", with: "")
+
+        switch source {
+        case "":
+            return .init(required: nil)
+
+        case "@Schema", "@Schema()":
+            return .init(required: nil)
+
+        case "@Schema(required:true)":
+            return .init(required: true)
+
+        case "@Schema(required:false)":
+            return .init(required: false)
+
+        default:
+            throw MacroExpansionErrorMessage(
+                "@JSONSchema stored properties support only @Schema(required:) metadata; other attributes or wrappers require manual JSONSchemaProviding conformance."
+            )
+        }
+    }
+
     static func isOptional(_ type: TypeSyntax) -> Bool {
         if type.is(OptionalTypeSyntax.self) {
             return true
@@ -293,6 +327,24 @@ private extension JSONSchemaMacro {
 
         let text = type.trimmedDescription
         return text.hasPrefix("Optional<") && text.hasSuffix(">")
+    }
+
+    static func schemaPropertyType(
+        _ type: TypeSyntax
+    ) -> String {
+        let value = schemaType(type)
+
+        guard value.hasPrefix("Optional<"),
+              value.hasSuffix(">")
+        else {
+            return value
+        }
+
+        return String(
+            value
+                .dropFirst("Optional<".count)
+                .dropLast()
+        )
     }
 
     static func schemaType(_ type: TypeSyntax) -> String {
@@ -400,9 +452,20 @@ private extension JSONSchemaMacro {
     }
 }
 
+public struct SchemaPropertyMacro: PeerMacro {
+    public static func expansion(
+        of node: AttributeSyntax,
+        providingPeersOf declaration: some DeclSyntaxProtocol,
+        in context: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        []
+    }
+}
+
 @main
 struct SchemaPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         JSONSchemaMacro.self,
+        SchemaPropertyMacro.self,
     ]
 }

@@ -16,10 +16,13 @@ internal struct JSONSchemaMacroProbe:
     /// Human-readable probe name.
     let name: String
 
-    /// Optional count; omission and explicit null are both admitted.
+    /// Optional count.
     let count: Int?
 
+    /// Non-optional value that remains omittable on the wire.
+    @Schema(required: false)
     let mode: JSONSchemaMacroProbeMode
+
     let tags: [String]
 }
 
