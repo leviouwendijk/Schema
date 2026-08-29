@@ -21,7 +21,7 @@ public struct JSONSchemaMacro: ExtensionMacro {
             schema = try enumSchema(value)
         } else {
             throw MacroExpansionErrorMessage(
-                "@JSONSchema supports structs and String raw-value enums."
+                "@JSONSchema supports structs, String raw-value enums, and synthesized-Codable enums."
             )
         }
 
@@ -178,12 +178,33 @@ private extension JSONSchemaMacro {
             .inheritedTypes
             .map { $0.type.trimmedDescription } ?? []
 
-        guard inherited.contains("String") else {
-            throw MacroExpansionErrorMessage(
-                "@JSONSchema enum synthesis requires a String raw value."
+        if inherited.contains("String") {
+            return try stringEnumSchema(
+                declaration
             )
         }
 
+        let synthesizedCodable =
+            inherited.contains("Codable")
+            || (
+                inherited.contains("Encodable")
+                && inherited.contains("Decodable")
+            )
+
+        guard synthesizedCodable else {
+            throw MacroExpansionErrorMessage(
+                "@JSONSchema non-raw enum synthesis requires Codable, or both Encodable and Decodable."
+            )
+        }
+
+        return try synthesizedCodableEnumSchema(
+            declaration
+        )
+    }
+
+    static func stringEnumSchema(
+        _ declaration: EnumDeclSyntax
+    ) throws -> String {
         var values: [String] = []
 
         for member in declaration.memberBlock.members {
@@ -194,7 +215,7 @@ private extension JSONSchemaMacro {
             for element in cases.elements {
                 guard element.parameterClause == nil else {
                     throw MacroExpansionErrorMessage(
-                        "Associated-value enums require manual JSONSchemaProviding conformance."
+                        "String raw-value enums cannot declare associated values."
                     )
                 }
 
@@ -215,6 +236,88 @@ private extension JSONSchemaMacro {
         JSONSchema.string(
             description: \(optionalString(docs(declaration.leadingTrivia))),
             cases: [\(values.map(literal).joined(separator: ", "))]
+        )
+        """
+    }
+
+    static func synthesizedCodableEnumSchema(
+        _ declaration: EnumDeclSyntax
+    ) throws -> String {
+        var variants: [String] = []
+
+        for member in declaration.memberBlock.members {
+            guard let cases = member.decl.as(EnumCaseDeclSyntax.self) else {
+                continue
+            }
+
+            let caseDescription =
+                optionalString(
+                    docs(cases.leadingTrivia)
+                )
+
+            for element in cases.elements {
+                let payload: String
+
+                if let parameters = element.parameterClause?.parameters {
+                    let properties = parameters.enumerated().map {
+                        index,
+                        parameter
+                    in
+                        let firstName =
+                            parameter.firstName?.text
+                        let name =
+                            if let firstName,
+                               firstName != "_"
+                            {
+                                firstName
+                            } else {
+                                "_\(index)"
+                            }
+                        let type =
+                            schemaPropertyType(
+                                parameter.type
+                            )
+
+                        return """
+                        JSONSchema.Property(
+                            name: \(literal(name)),
+                            schema: \(type).jsonschema,
+                            required: \(!isOptional(parameter.type))
+                        )
+                        """
+                    }
+                    .joined(separator: "\n")
+
+                    payload = """
+                    JSONSchema.object {
+                    \(indent(properties, by: 4))
+                    }
+                    """
+                } else {
+                    payload = "JSONSchema.object()"
+                }
+
+                variants.append(
+                    """
+                    JSONSchema.object {
+                        JSONSchema.Property(
+                            name: \(literal(element.name.text)),
+                            schema: \(payload),
+                            required: true,
+                            description: \(caseDescription)
+                        )
+                    }
+                    """
+                )
+            }
+        }
+
+        return """
+        JSONSchema(
+            form: .oneOf([
+        \(indent(variants.joined(separator: ",\n"), by: 8))
+            ]),
+            description: \(optionalString(docs(declaration.leadingTrivia)))
         )
         """
     }
