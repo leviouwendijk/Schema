@@ -1,7 +1,7 @@
 import Primitives
 
-public struct JSONSchema: Sendable, Hashable {
-    public struct Property: Sendable, Hashable {
+public struct JSONSchema: Sendable, Codable, Hashable {
+    public struct Property: Sendable, Codable, Hashable {
         public let name: String
         public let schema: JSONSchema
         public let required: Bool
@@ -20,13 +20,13 @@ public struct JSONSchema: Sendable, Hashable {
         }
     }
 
-    public indirect enum AdditionalProperties: Sendable, Hashable {
+    public indirect enum AdditionalProperties: Sendable, Codable, Hashable {
         case allowed
         case disallowed
         case schema(JSONSchema)
     }
 
-    public indirect enum Form: Sendable, Hashable {
+    public indirect enum Form: Sendable, Codable, Hashable {
         case any
         case null
         case boolean
