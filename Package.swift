@@ -4,9 +4,9 @@ import PackageDescription
 
 let package = Package(
     name: "Schema",
-    platforms: [
-        .macOS(.v13),
-    ],
+    // platforms: [
+    //     .macOS(.v13),
+    // ],
     products: [
         .library(
             name: "Schema",

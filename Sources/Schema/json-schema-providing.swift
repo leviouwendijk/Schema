@@ -1,3 +1,4 @@
+import Foundation
 import Primitives
 
 public protocol JSONSchemaProviding {
@@ -61,6 +62,10 @@ extension Float: JSONSchemaProviding {
 }
 
 extension Double: JSONSchemaProviding {
+    public static var jsonschema: JSONSchema { .number() }
+}
+
+extension Date: JSONSchemaProviding {
     public static var jsonschema: JSONSchema { .number() }
 }
 
