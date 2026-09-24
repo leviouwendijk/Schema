@@ -69,6 +69,10 @@ extension Date: JSONSchemaProviding {
     public static var jsonschema: JSONSchema { .number() }
 }
 
+extension URL: JSONSchemaProviding {
+    public static var jsonschema: JSONSchema { .string() }
+}
+
 extension Optional: JSONSchemaProviding where Wrapped: JSONSchemaProviding {
     public static var jsonschema: JSONSchema {
         .oneOf([Wrapped.jsonschema, .null])
