@@ -70,16 +70,20 @@ extension Date: JSONSchemaProviding {
 }
 
 extension URL: JSONSchemaProviding {
-    public static var jsonschema: JSONSchema { .string() }
+    public static var jsonschema: JSONSchema {
+        .string(format: .uri)
+    }
 }
 
 extension UUID: JSONSchemaProviding {
-    public static var jsonschema: JSONSchema { .string() }
+    public static var jsonschema: JSONSchema {
+        .string(format: .uuid)
+    }
 }
 
 extension Optional: JSONSchemaProviding where Wrapped: JSONSchemaProviding {
     public static var jsonschema: JSONSchema {
-        .oneOf([Wrapped.jsonschema, .null])
+        .anyOf([Wrapped.jsonschema, .null])
     }
 }
 

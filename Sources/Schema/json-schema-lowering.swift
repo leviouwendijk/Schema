@@ -8,6 +8,10 @@ public extension JSONSchema {
             value["description"] = .string(description)
         }
 
+        if case .string = form, let stringFormat {
+            value["format"] = .string(stringFormat.codingValue)
+        }
+
         if !definitions.isEmpty {
             value["$defs"] = .object(
                 definitions.mapValues(\.jsonvalue)
@@ -99,6 +103,9 @@ private extension JSONSchema {
 
         case .oneOf(let schemas):
             return ["oneOf": .array(schemas.map(\.jsonvalue))]
+
+        case .anyOf(let schemas):
+            return ["anyOf": .array(schemas.map(\.jsonvalue))]
 
         case .constant(let value):
             return ["const": value]

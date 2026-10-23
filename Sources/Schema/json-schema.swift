@@ -26,6 +26,47 @@ public struct JSONSchema: Sendable, Codable, Hashable {
         case schema(JSONSchema)
     }
 
+    public enum StringFormat: Codable, Sendable, Hashable {
+        case uuid
+        case uri
+        case date_time
+
+        var codingValue: String {
+            switch self {
+            case .uuid:
+                "uuid"
+            case .uri:
+                "uri"
+            case .date_time:
+                "date-time"
+            }
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let value = try container.decode(String.self)
+
+            switch value {
+            case "uuid":
+                self = .uuid
+            case "uri":
+                self = .uri
+            case "date-time":
+                self = .date_time
+            default:
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Unknown string format: \(value)"
+                )
+            }
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(codingValue)
+        }
+    }
+
     public indirect enum Form: Sendable, Codable, Hashable {
         case any
         case null
@@ -44,6 +85,7 @@ public struct JSONSchema: Sendable, Codable, Hashable {
             additionalProperties: AdditionalProperties
         )
         case oneOf([JSONSchema])
+        case anyOf([JSONSchema])
         case constant(JSONValue)
         case reference(String)
     }
@@ -51,15 +93,18 @@ public struct JSONSchema: Sendable, Codable, Hashable {
     public let form: Form
     public let description: String?
     public let definitions: [String: JSONSchema]
+    public let stringFormat: StringFormat?
 
     public init(
         form: Form,
         description: String? = nil,
-        definitions: [String: JSONSchema] = [:]
+        definitions: [String: JSONSchema] = [:],
+        stringFormat: StringFormat? = nil
     ) {
         self.form = form
         self.description = description
         self.definitions = definitions
+        self.stringFormat = stringFormat
     }
 }
 
@@ -99,9 +144,14 @@ public extension JSONSchema {
 
     static func string(
         description: String? = nil,
-        cases: [String] = []
+        cases: [String] = [],
+        format: StringFormat? = nil
     ) -> Self {
-        .init(form: .string(cases: cases), description: description)
+        .init(
+            form: .string(cases: cases),
+            description: description,
+            stringFormat: format
+        )
     }
 
     static func array(
@@ -155,6 +205,13 @@ public extension JSONSchema {
         .init(form: .oneOf(schemas), description: description)
     }
 
+    static func anyOf(
+        _ schemas: [JSONSchema],
+        description: String? = nil
+    ) -> Self {
+        .init(form: .anyOf(schemas), description: description)
+    }
+
     static func constant(
         _ value: JSONValue,
         description: String? = nil
@@ -173,7 +230,8 @@ public extension JSONSchema {
         .init(
             form: form,
             description: description,
-            definitions: definitions
+            definitions: definitions,
+            stringFormat: stringFormat
         )
     }
 
@@ -188,7 +246,8 @@ public extension JSONSchema {
         return .init(
             form: form,
             description: description,
-            definitions: definitions
+            definitions: definitions,
+            stringFormat: stringFormat
         )
     }
 }
@@ -243,11 +302,12 @@ public extension JSONSchema {
         _ name: String,
         required: Bool = false,
         description: String? = nil,
-        cases: [String] = []
+        cases: [String] = [],
+        format: StringFormat? = nil
     ) -> Property {
         property(
             name,
-            schema: .string(cases: cases),
+            schema: .string(cases: cases, format: format),
             required: required,
             description: description
         )
@@ -343,8 +403,11 @@ public extension JSONSchema {
         public static func double(cases: [Double] = []) -> JSONSchema {
             .number(cases: cases)
         }
-        public static func string(cases: [String] = []) -> JSONSchema {
-            .string(cases: cases)
+        public static func string(
+            cases: [String] = [],
+            format: StringFormat? = nil
+        ) -> JSONSchema {
+            .string(cases: cases, format: format)
         }
         public static func array(
             items: JSONSchema,

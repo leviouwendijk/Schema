@@ -307,6 +307,22 @@ private extension JSONSchema {
                 )
             }
 
+        case .anyOf(let schemas):
+            let matches = schemas.contains { schema in
+                schema.accepts(
+                    value,
+                    definitions: availableDefinitions,
+                    path: path
+                )
+            }
+
+            guard matches else {
+                throw JSONSchemaValidationError(
+                    path: path,
+                    reason: "Expected at least one anyOf branch to match."
+                )
+            }
+
         case .constant(let expected):
             guard value == expected else {
                 throw JSONSchemaValidationError(

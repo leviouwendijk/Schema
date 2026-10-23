@@ -303,6 +303,25 @@ private extension JSONSchema {
 
             return []
 
+        case .anyOf(let schemas):
+            let matches = schemas.contains { schema in
+                schema.issues(
+                    in: value,
+                    definitions: availableDefinitions,
+                    path: path
+                ).isEmpty
+            }
+
+            guard matches else {
+                return issue(
+                    .invalidValue,
+                    path: path,
+                    reason: "Expected at least one anyOf branch to match."
+                )
+            }
+
+            return []
+
         case .constant(let expected):
             guard value == expected else {
                 return issue(
