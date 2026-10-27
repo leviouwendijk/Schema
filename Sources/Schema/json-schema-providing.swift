@@ -9,6 +9,13 @@ extension JSONValue: JSONSchemaProviding {
     public static var jsonschema: JSONSchema { .any }
 }
 
+extension JSONValue.Kind: JSONSchemaProviding {
+    /// The type-category vocabulary is authored once by JSONValue.Kind in Primitives.
+    public static var jsonschema: JSONSchema {
+        .string(cases: Self.allCases.map(\.rawValue))
+    }
+}
+
 extension String: JSONSchemaProviding {
     public static var jsonschema: JSONSchema { .string() }
 }
