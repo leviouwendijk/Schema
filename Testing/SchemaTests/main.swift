@@ -174,5 +174,22 @@ func run_schema_tests() throws {
     )
 }
 
+func run_conforming_tests() {
+    let report = JSONSchema.object {
+        JSONSchema.property("summary", schema: .string(), required: true)
+    }
+    let conforming = try? JSONSchemaConforming(.init(value: .object(["summary": .string("ok")]), schema: report))
+    check(conforming?.value == .object(["summary": .string("ok")]), "A conforming value is constructed")
+    check(
+        (try? JSONSchemaConforming(.init(value: .array([]), schema: report))) == nil,
+        "A value of the wrong shape cannot be constructed"
+    )
+    check(
+        (try? JSONSchemaConforming(.init(value: .object([:]), schema: report))) == nil,
+        "A value missing a required field cannot be constructed"
+    )
+}
+
 try run_schema_tests()
+run_conforming_tests()
 print("Schema regression tests passed")
