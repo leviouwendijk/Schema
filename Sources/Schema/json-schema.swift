@@ -94,17 +94,45 @@ public struct JSONSchema: Sendable, Codable, Hashable {
     public let description: String?
     public let definitions: [String: JSONSchema]
     public let stringFormat: StringFormat?
+    /// Meaning of individual enumerated values, keyed by value. JSON Schema
+    /// has no per-value annotation, so lowering folds these into
+    /// `description`; they stay structured here for callers that render them.
+    public let caseDescriptions: [String: String]
 
     public init(
         form: Form,
         description: String? = nil,
         definitions: [String: JSONSchema] = [:],
-        stringFormat: StringFormat? = nil
+        stringFormat: StringFormat? = nil,
+        caseDescriptions: [String: String] = [:]
     ) {
         self.form = form
         self.description = description
         self.definitions = definitions
         self.stringFormat = stringFormat
+        self.caseDescriptions = caseDescriptions
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case form
+        case description
+        case definitions
+        case stringFormat
+        case caseDescriptions
+    }
+}
+
+public extension JSONSchema {
+    // Schemas encoded before case descriptions existed stay decodable.
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            form: try values.decode(Form.self, forKey: .form),
+            description: try values.decodeIfPresent(String.self, forKey: .description),
+            definitions: try values.decodeIfPresent([String: JSONSchema].self, forKey: .definitions) ?? [:],
+            stringFormat: try values.decodeIfPresent(StringFormat.self, forKey: .stringFormat),
+            caseDescriptions: try values.decodeIfPresent([String: String].self, forKey: .caseDescriptions) ?? [:]
+        )
     }
 }
 
@@ -145,12 +173,14 @@ public extension JSONSchema {
     static func string(
         description: String? = nil,
         cases: [String] = [],
+        caseDescriptions: [String: String] = [:],
         format: StringFormat? = nil
     ) -> Self {
         .init(
             form: .string(cases: cases),
             description: description,
-            stringFormat: format
+            stringFormat: format,
+            caseDescriptions: caseDescriptions
         )
     }
 
@@ -231,7 +261,8 @@ public extension JSONSchema {
             form: form,
             description: description,
             definitions: definitions,
-            stringFormat: stringFormat
+            stringFormat: stringFormat,
+            caseDescriptions: caseDescriptions
         )
     }
 
@@ -247,7 +278,8 @@ public extension JSONSchema {
             form: form,
             description: description,
             definitions: definitions,
-            stringFormat: stringFormat
+            stringFormat: stringFormat,
+            caseDescriptions: caseDescriptions
         )
     }
 }

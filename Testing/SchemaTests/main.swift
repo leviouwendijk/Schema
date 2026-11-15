@@ -134,6 +134,44 @@ func run_schema_tests() throws {
         Date.jsonschema.accepts(.double(1.0)),
         "Existing Date strategy remains numeric"
     )
+
+    let documented = JSONSchema.string(
+        description: "Where a constraint comes from.",
+        cases: ["stated", "assumed"],
+        caseDescriptions: [
+            "assumed": "Not verified.",
+            "stated": "The user said it.",
+        ]
+    )
+    let lowered_enum = try documented.jsonvalue.objectValue
+    check(
+        lowered_enum["enum"] == .array([.string("stated"), .string("assumed")]),
+        "Documented enums keep their enum values"
+    )
+    check(
+        lowered_enum["description"] == .string(
+            "Where a constraint comes from.\n- stated: The user said it.\n- assumed: Not verified."
+        ),
+        "Case descriptions fold into the description in declared order"
+    )
+    check(
+        documented.described("Provenance.").caseDescriptions == documented.caseDescriptions,
+        "A property description keeps the type's case descriptions"
+    )
+
+    let legacy_schema = try JSONDecoder().decode(
+        JSONSchema.self,
+        from: try JSONEncoder().encode(JSONSchema.string(cases: ["a"]))
+    )
+    check(legacy_schema.caseDescriptions.isEmpty, "Undocumented schemas round-trip")
+
+    let legacy_payload = Data(
+        #"{"form":{"string":{"cases":["a"]}},"definitions":{}}"#.utf8
+    )
+    check(
+        (try? JSONDecoder().decode(JSONSchema.self, from: legacy_payload))?.caseDescriptions == [:],
+        "Schemas encoded before case descriptions still decode"
+    )
 }
 
 try run_schema_tests()

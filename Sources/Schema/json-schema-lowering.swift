@@ -4,7 +4,7 @@ public extension JSONSchema {
     var jsonvalue: JSONValue {
         var value = lowered
 
-        if let description {
+        if let description = loweredDescription {
             value["description"] = .string(description)
         }
 
@@ -23,6 +23,30 @@ public extension JSONSchema {
 }
 
 private extension JSONSchema {
+    /// The description plus one line per documented value, in declared order.
+    var loweredDescription: String? {
+        guard !caseDescriptions.isEmpty else {
+            return description
+        }
+
+        let values: [String]
+        switch form {
+        case .string(let cases):
+            values = cases
+        default:
+            values = caseDescriptions.keys.sorted()
+        }
+        let lines = values.compactMap { value in
+            caseDescriptions[value].map { "- \(value): \($0)" }
+        }
+        guard !lines.isEmpty else {
+            return description
+        }
+
+        return ([description].compactMap { $0 } + [lines.joined(separator: "\n")])
+            .joined(separator: "\n")
+    }
+
     var lowered: [String: JSONValue] {
         switch form {
         case .any:
