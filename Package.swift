@@ -14,10 +14,6 @@ let package = Package(
                 "Schema",
             ]
         ),
-        .executable(
-            name: "schematest",
-            targets: ["SchemaTests"]
-        ),
     ],
     dependencies: [
         .package(
@@ -34,17 +30,6 @@ let package = Package(
                     package: "Primitives"
                 ),
             ]
-        ),
-        .executableTarget(
-            name: "SchemaTests",
-            dependencies: [
-                "Schema",
-                .product(
-                    name: "Primitives",
-                    package: "Primitives"
-                ),
-            ],
-            path: "Testing/SchemaTests"
         ),
     ],
     swiftLanguageModes: [.v6]
